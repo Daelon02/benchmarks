@@ -1,8 +1,8 @@
-use std::time::Instant;
 use bincode::{config, Decode, Encode};
 use borsh::{BorshDeserialize, BorshSerialize};
 use rand::Rng;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::time::Instant;
 use tungstenite::{connect, Message};
 use url::Url;
 
@@ -137,8 +137,12 @@ fn main() {
     let encoded_world_borsh: Vec<u8> = bincode::encode_to_vec(world_borsh, config).unwrap();
 
     let now = Instant::now();
-    socket.write_message(Message::Binary(encoded_world)).unwrap();
-    socket.write_message(Message::Binary(encoded_world_borsh)).unwrap();
+    socket
+        .write_message(Message::Binary(encoded_world))
+        .unwrap();
+    socket
+        .write_message(Message::Binary(encoded_world_borsh))
+        .unwrap();
     loop {
         let msg = socket.read_message().expect("Error reading message");
         let after_loop = Instant::now();

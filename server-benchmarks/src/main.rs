@@ -1,13 +1,13 @@
-use std::net::{TcpListener, TcpStream};
-use std::thread::spawn;
 use bincode::{config, Decode, Encode};
 use borsh::{BorshDeserialize, BorshSerialize};
-use std::time::Instant;
 use rand::Rng;
-use serde_json::{json};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::net::{TcpListener, TcpStream};
+use std::thread::spawn;
+use std::time::Instant;
+use tungstenite::handshake::server::{Request, Response};
 use tungstenite::{accept_hdr, Message, WebSocket};
-use tungstenite::handshake::server::{Response, Request};
 
 #[derive(Encode, Decode, PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct EntityBincode {
@@ -164,7 +164,8 @@ fn main() {
                 }
             };
             let config = config::standard();
-            let (world, _): (Vec<World>, usize)  = bincode::decode_from_slice(&mgs[..], config).unwrap();
+            let (world, _): (Vec<World>, usize) =
+                bincode::decode_from_slice(&mgs[..], config).unwrap();
             let msg = websocket.read_message().unwrap();
             let mgs = match msg.clone() {
                 Message::Text(_) => {
@@ -189,13 +190,18 @@ fn main() {
                     vec
                 }
             };
-            let (world_borsh, _): (Vec<WorldBorsh>, usize) = bincode::decode_from_slice(&mgs[..], config).unwrap();
+            let (world_borsh, _): (Vec<WorldBorsh>, usize) =
+                bincode::decode_from_slice(&mgs[..], config).unwrap();
             encode_all_data(world, world_borsh, websocket);
         });
     }
 }
 
-pub fn encode_all_data(world: Vec<World>, world_borsh: Vec<WorldBorsh>, mut websocket: WebSocket<TcpStream>) {
+pub fn encode_all_data(
+    world: Vec<World>,
+    world_borsh: Vec<WorldBorsh>,
+    mut websocket: WebSocket<TcpStream>,
+) {
     let config = config::standard();
     println!("Start encode for a data \n");
     let mut vec = vec![];
@@ -205,8 +211,14 @@ pub fn encode_all_data(world: Vec<World>, world_borsh: Vec<WorldBorsh>, mut webs
         vec.push(encoded);
     }
     let after_loop_bincode = Instant::now();
-    println!("Time for encode to bincode: {:?}\n this len value: \n {:?} \n", after_loop_bincode - now_bincode, vec.len());
-    websocket.write_message(Message::Text("End test for bincode!".to_string())).unwrap();
+    println!(
+        "Time for encode to bincode: {:?}\n this len value: \n {:?} \n",
+        after_loop_bincode - now_bincode,
+        vec.len()
+    );
+    websocket
+        .write_message(Message::Text("End test for bincode!".to_string()))
+        .unwrap();
 
     let mut vec_borsh = vec![];
     let now_borsh = Instant::now();
@@ -215,21 +227,37 @@ pub fn encode_all_data(world: Vec<World>, world_borsh: Vec<WorldBorsh>, mut webs
         vec_borsh.push(encoded);
     }
     let after_loop_borsh = Instant::now();
-    println!("Time for encode to borsh: {:?}\n with this len value: \n {:?} \n", after_loop_borsh - now_borsh, vec.len());
-    websocket.write_message(Message::Text("End test for borsh!".to_string())).unwrap();
+    println!(
+        "Time for encode to borsh: {:?}\n with this len value: \n {:?} \n",
+        after_loop_borsh - now_borsh,
+        vec.len()
+    );
+    websocket
+        .write_message(Message::Text("End test for borsh!".to_string()))
+        .unwrap();
 
     let mut vec_json = vec![];
     let now_json = Instant::now();
     for world in &world {
-        let encoded = json!({"Value": world});
+        let encoded = json!({ "Value": world });
         vec_json.push(encoded);
     }
     let after_loop_json = Instant::now();
-    println!("Time for encode to json: {:?}\n this len value: \n {:?} \n", after_loop_json - now_json, vec.len());
-    websocket.write_message(Message::Text("End test for json!".to_string())).unwrap();
+    println!(
+        "Time for encode to json: {:?}\n this len value: \n {:?} \n",
+        after_loop_json - now_json,
+        vec.len()
+    );
+    websocket
+        .write_message(Message::Text("End test for json!".to_string()))
+        .unwrap();
 }
 
-pub fn decode_all_data(world: Vec<World>, world_borsh: Vec<WorldBorsh>, mut websocket: WebSocket<TcpStream>) {
+pub fn decode_all_data(
+    world: Vec<World>,
+    world_borsh: Vec<WorldBorsh>,
+    mut websocket: WebSocket<TcpStream>,
+) {
     let config = config::standard();
     println!("Start decode for a data \n");
     let mut vec_bincode_encode = vec![];
@@ -241,12 +269,19 @@ pub fn decode_all_data(world: Vec<World>, world_borsh: Vec<WorldBorsh>, mut webs
     let now_bincode = Instant::now();
     for world in vec {
         let config = config::standard();
-        let (decoded, _len): (World, usize) = bincode::decode_from_slice(&world[..], config).unwrap();
+        let (decoded, _len): (World, usize) =
+            bincode::decode_from_slice(&world[..], config).unwrap();
         vec_bincode_encode.push(decoded);
     }
     let after_loop_bincode = Instant::now();
-    println!("Time for decode to bincode: {:?} \n this len value: \n {:?} \n", after_loop_bincode - now_bincode, vec_bincode_encode.len());
-    websocket.write_message(Message::Text("End test for json!".to_string())).unwrap();
+    println!(
+        "Time for decode to bincode: {:?} \n this len value: \n {:?} \n",
+        after_loop_bincode - now_bincode,
+        vec_bincode_encode.len()
+    );
+    websocket
+        .write_message(Message::Text("End test for json!".to_string()))
+        .unwrap();
 
     let mut vec_borsh_encode = vec![];
     let mut vec = vec![];
@@ -260,8 +295,14 @@ pub fn decode_all_data(world: Vec<World>, world_borsh: Vec<WorldBorsh>, mut webs
         vec_borsh_encode.push(decoded);
     }
     let after_loop_borsh = Instant::now();
-    println!("Time for decode to borsh: {:?} \n this len value: \n {:?} \n", after_loop_borsh - now_borsh, vec_borsh_encode.len());
-    websocket.write_message(Message::Text("End test for json!".to_string())).unwrap();
+    println!(
+        "Time for decode to borsh: {:?} \n this len value: \n {:?} \n",
+        after_loop_borsh - now_borsh,
+        vec_borsh_encode.len()
+    );
+    websocket
+        .write_message(Message::Text("End test for json!".to_string()))
+        .unwrap();
 
     let mut vec_json_encode = vec![];
     let mut vec = vec![];
@@ -275,6 +316,12 @@ pub fn decode_all_data(world: Vec<World>, world_borsh: Vec<WorldBorsh>, mut webs
         vec_json_encode.push(decoded);
     }
     let after_loop_json = Instant::now();
-    println!("Time for decode to json: {:?} \n this len value: \n {:?} \n", after_loop_json - now_json, vec_json_encode.len());
-    websocket.write_message(Message::Text("End test for json!".to_string())).unwrap();
+    println!(
+        "Time for decode to json: {:?} \n this len value: \n {:?} \n",
+        after_loop_json - now_json,
+        vec_json_encode.len()
+    );
+    websocket
+        .write_message(Message::Text("End test for json!".to_string()))
+        .unwrap();
 }
