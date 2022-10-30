@@ -6,8 +6,18 @@ use std::time::Instant;
 use tungstenite::{connect, Message};
 use url::Url;
 
-#[derive(Encode, Decode, PartialEq, Debug, Serialize, Deserialize, Clone)]
-pub struct EntityBincode {
+#[derive(
+    Encode,
+    Decode,
+    PartialEq,
+    Debug,
+    Serialize,
+    Deserialize,
+    BorshDeserialize,
+    BorshSerialize,
+    Clone,
+)]
+pub struct Entity {
     pub string: String,
     pub number: u64,
     pub number_float: f64,
@@ -20,16 +30,26 @@ pub struct EntityBincode {
     pub bool1: bool,
 }
 
-#[derive(Encode, Decode, PartialEq, Debug, Serialize, Deserialize, Clone)]
-pub struct World(pub Vec<EntityBincode>);
+#[derive(
+    Encode,
+    Decode,
+    PartialEq,
+    Debug,
+    Serialize,
+    Deserialize,
+    BorshDeserialize,
+    BorshSerialize,
+    Clone,
+)]
+pub struct World(pub Vec<Entity>);
 
 impl World {
     pub fn many_rand(from: u64, to: u64) -> Vec<World> {
         let mut rng = rand::thread_rng();
         let mut vec = vec![];
         for _i in from..to {
-            let world = World(vec![
-                EntityBincode {
+            let world = Self(vec![
+                Entity {
                     string: "TestString".to_string(),
                     number: rng.gen(),
                     number_float: rng.gen(),
@@ -41,61 +61,7 @@ impl World {
                     vec1: vec![rng.gen()],
                     bool1: true,
                 },
-                EntityBincode {
-                    string: "TestAnotherString".to_string(),
-                    number: rng.gen(),
-                    number_float: rng.gen(),
-                    vec: vec![rng.gen(), rng.gen(), rng.gen()],
-                    bool: false,
-                    string1: "TestString".to_string(),
-                    number1: rng.gen(),
-                    number_float1: rng.gen(),
-                    vec1: vec![rng.gen()],
-                    bool1: true,
-                },
-            ]);
-            vec.push(world);
-        }
-        vec
-    }
-}
-
-#[derive(Encode, Decode, BorshDeserialize, BorshSerialize, PartialEq, Debug, Clone)]
-pub struct EntityBorsh {
-    pub string: String,
-    pub number: u64,
-    pub number_float: f64,
-    pub vec: Vec<u32>,
-    pub bool: bool,
-    pub string1: String,
-    pub number1: u64,
-    pub number_float1: f64,
-    pub vec1: Vec<u32>,
-    pub bool1: bool,
-}
-
-#[derive(Encode, Decode, BorshDeserialize, BorshSerialize, PartialEq, Debug, Clone)]
-pub struct WorldBorsh(pub Vec<EntityBorsh>);
-
-impl WorldBorsh {
-    pub fn many_rand(from: u64, to: u64) -> Vec<WorldBorsh> {
-        let mut rng = rand::thread_rng();
-        let mut vec = vec![];
-        for _i in from..to {
-            let world = WorldBorsh(vec![
-                EntityBorsh {
-                    string: "TestString".to_string(),
-                    number: rng.gen(),
-                    number_float: rng.gen(),
-                    vec: vec![rng.gen()],
-                    bool: true,
-                    string1: "TestString".to_string(),
-                    number1: rng.gen(),
-                    number_float1: rng.gen(),
-                    vec1: vec![rng.gen()],
-                    bool1: true,
-                },
-                EntityBorsh {
+                Entity {
                     string: "TestAnotherString".to_string(),
                     number: rng.gen(),
                     number_float: rng.gen(),
@@ -129,7 +95,7 @@ fn main() {
 
     let world = World::many_rand(0, 100000);
 
-    let world_borsh = WorldBorsh::many_rand(0, 100000);
+    let world_borsh = World::many_rand(0, 100000);
 
     let config = config::standard();
     let encoded_world: Vec<u8> = bincode::encode_to_vec(world, config).unwrap();

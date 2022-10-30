@@ -9,8 +9,18 @@ use std::time::Instant;
 use tungstenite::handshake::server::{Request, Response};
 use tungstenite::{accept_hdr, Message, WebSocket};
 
-#[derive(Encode, Decode, PartialEq, Debug, Serialize, Deserialize, Clone)]
-pub struct EntityBincode {
+#[derive(
+    Encode,
+    Decode,
+    PartialEq,
+    Debug,
+    Serialize,
+    Deserialize,
+    BorshSerialize,
+    BorshDeserialize,
+    Clone,
+)]
+pub struct Entity {
     pub string: String,
     pub number: u64,
     pub number_float: f64,
@@ -23,8 +33,18 @@ pub struct EntityBincode {
     pub bool1: bool,
 }
 
-#[derive(Encode, Decode, PartialEq, Debug, Serialize, Deserialize, Clone)]
-pub struct World(pub Vec<EntityBincode>);
+#[derive(
+    Encode,
+    Decode,
+    PartialEq,
+    Debug,
+    Serialize,
+    Deserialize,
+    BorshSerialize,
+    BorshDeserialize,
+    Clone,
+)]
+pub struct World(pub Vec<Entity>);
 
 impl World {
     pub fn many_rand(from: u64, to: u64) -> Vec<World> {
@@ -32,7 +52,7 @@ impl World {
         let mut vec = vec![];
         for _i in from..to {
             let world = World(vec![
-                EntityBincode {
+                Entity {
                     string: "TestString".to_string(),
                     number: rng.gen(),
                     number_float: rng.gen(),
@@ -44,61 +64,7 @@ impl World {
                     vec1: vec![rng.gen()],
                     bool1: true,
                 },
-                EntityBincode {
-                    string: "TestAnotherString".to_string(),
-                    number: rng.gen(),
-                    number_float: rng.gen(),
-                    vec: vec![rng.gen(), rng.gen(), rng.gen()],
-                    bool: false,
-                    string1: "TestString".to_string(),
-                    number1: rng.gen(),
-                    number_float1: rng.gen(),
-                    vec1: vec![rng.gen()],
-                    bool1: true,
-                },
-            ]);
-            vec.push(world);
-        }
-        vec
-    }
-}
-
-#[derive(Encode, Decode, BorshDeserialize, BorshSerialize, PartialEq, Debug, Clone)]
-pub struct EntityBorsh {
-    pub string: String,
-    pub number: u64,
-    pub number_float: f64,
-    pub vec: Vec<u32>,
-    pub bool: bool,
-    pub string1: String,
-    pub number1: u64,
-    pub number_float1: f64,
-    pub vec1: Vec<u32>,
-    pub bool1: bool,
-}
-
-#[derive(Encode, Decode, BorshDeserialize, BorshSerialize, PartialEq, Debug, Clone)]
-pub struct WorldBorsh(pub Vec<EntityBorsh>);
-
-impl WorldBorsh {
-    pub fn many_rand(from: u64, to: u64) -> Vec<WorldBorsh> {
-        let mut rng = rand::thread_rng();
-        let mut vec = vec![];
-        for _i in from..to {
-            let world = WorldBorsh(vec![
-                EntityBorsh {
-                    string: "TestString".to_string(),
-                    number: rng.gen(),
-                    number_float: rng.gen(),
-                    vec: vec![rng.gen()],
-                    bool: true,
-                    string1: "TestString".to_string(),
-                    number1: rng.gen(),
-                    number_float1: rng.gen(),
-                    vec1: vec![rng.gen()],
-                    bool1: true,
-                },
-                EntityBorsh {
+                Entity {
                     string: "TestAnotherString".to_string(),
                     number: rng.gen(),
                     number_float: rng.gen(),
@@ -141,24 +107,8 @@ fn main() {
 
             let msg = websocket.read_message().unwrap();
             let mgs = match msg.clone() {
-                Message::Text(_) => {
-                    let vec = vec![];
-                    vec
-                }
                 Message::Binary(value) => value,
-                Message::Ping(_) => {
-                    let vec = vec![];
-                    vec
-                }
-                Message::Pong(_) => {
-                    let vec = vec![];
-                    vec
-                }
-                Message::Close(_) => {
-                    let vec = vec![];
-                    vec
-                }
-                Message::Frame(_) => {
+                _ => {
                     let vec = vec![];
                     vec
                 }
@@ -168,29 +118,13 @@ fn main() {
                 bincode::decode_from_slice(&mgs[..], config).unwrap();
             let msg = websocket.read_message().unwrap();
             let mgs = match msg.clone() {
-                Message::Text(_) => {
-                    let vec = vec![];
-                    vec
-                }
                 Message::Binary(value) => value,
-                Message::Ping(_) => {
-                    let vec = vec![];
-                    vec
-                }
-                Message::Pong(_) => {
-                    let vec = vec![];
-                    vec
-                }
-                Message::Close(_) => {
-                    let vec = vec![];
-                    vec
-                }
-                Message::Frame(_) => {
+                _ => {
                     let vec = vec![];
                     vec
                 }
             };
-            let (world_borsh, _): (Vec<WorldBorsh>, usize) =
+            let (world_borsh, _): (Vec<World>, usize) =
                 bincode::decode_from_slice(&mgs[..], config).unwrap();
             encode_all_data(world, world_borsh, websocket);
         });
@@ -199,7 +133,7 @@ fn main() {
 
 pub fn encode_all_data(
     world: Vec<World>,
-    world_borsh: Vec<WorldBorsh>,
+    world_borsh: Vec<World>,
     mut websocket: WebSocket<TcpStream>,
 ) {
     let config = config::standard();
@@ -251,11 +185,12 @@ pub fn encode_all_data(
     websocket
         .write_message(Message::Text("End test for json!".to_string()))
         .unwrap();
+    println!("Message send!");
 }
 
 pub fn decode_all_data(
     world: Vec<World>,
-    world_borsh: Vec<WorldBorsh>,
+    world_borsh: Vec<World>,
     mut websocket: WebSocket<TcpStream>,
 ) {
     let config = config::standard();
@@ -291,7 +226,7 @@ pub fn decode_all_data(
     }
     let now_borsh = Instant::now();
     for world in vec {
-        let decoded: WorldBorsh = WorldBorsh::try_from_slice(&world).unwrap();
+        let decoded: World = World::try_from_slice(&world).unwrap();
         vec_borsh_encode.push(decoded);
     }
     let after_loop_borsh = Instant::now();
